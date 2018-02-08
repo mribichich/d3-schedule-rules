@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  /* .axis--grid .domain {
+    fill: #ddd;
+    stroke: none;
+  }
+
+  .axis--x .domain,
+  .axis--grid .tick line {
+    stroke: #fff;
+  }
+
+  .axis--grid .tick--minor line {
+    stroke-opacity: .5;
+  } */
+</style>
+
+<body>
+
+  <div style="width: 100%; height: 200px;">
+    <div style="width: 100%; height: 100%;" id="chart"></div>
+  </div>
+
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="ResizeListener.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.1/moment.min.js"></script>
+  <script>
+    var data = [{
+        group: 'Horario',
+        rules: [
+          [{
+              startDay: 1,
+              startTime: '09:00',
+              endDay: 1,
+              endTime: '18:00'
+            },
+            {
+              startDay: 2,
+              startTime: '09:00',
+              endDay: 2,
+              endTime: '18:00'
+            },
+            {
+              startDay: 3,
+              startTime: '09:00',
+              endDay: 3,
+              endTime: '18:00'
+            },
+            {
+              startDay: 4,
+              startTime: '09:00',
+              endDay: 4,
+              endTime: '18:00'
+            },
+            {
+              startDay: 5,
+              startTime: '09:00',
+              endDay: 5,
+              endTime: '18:00'
+            }
+
+          ]
+        ]
+      },
+      {
+        group: 'Empleado',
+        rules: [
+          [{
+            startDay: 2,
+            startTime: '13:00',
+            endDay: 2,
+            endTime: '14:00'
+          }],
+          [{
+            startDay: 4,
+            startTime: '10:00',
+            endDay: 4,
+            endTime: '14:00'
+          }],
+        ]
+      },
+      {
+        group: 'Tipo de Empleado',
+        rules: [
+          [{
+              startDay: 1,
+              startTime: '18:00',
+              endDay: 1,
+              endTime: '21:00'
+            },
+            {
+              startDay: 2,
+              startTime: '18:00',
+              endDay: 2,
+              endTime: '21:00'
+            },
+            {
+              startDay: 3,
+              startTime: '18:00',
+              endDay: 3,
+              endTime: '21:00'
+            },
+            {
+              startDay: 4,
+              startTime: '18:00',
+              endDay: 4,
+              endTime: '21:00'
+            },
+            {
+              startDay: 5,
+              startTime: '18:00',
+              endDay: 5,
+              endTime: '21:00'
+            }
+          ],
+          [{
+              startDay: 1,
+              startTime: '21:00',
+              endDay: 2,
+              endTime: '06:00'
+            },
+            {
+              startDay: 2,
+              startTime: '21:00',
+              endDay: 3,
+              endTime: '06:00'
+            },
+            {
+              startDay: 3,
+              startTime: '21:00',
+              endDay: 4,
+              endTime: '06:00'
+            },
+            {
+              startDay: 4,
+              startTime: '21:00',
+              endDay: 5,
+              endTime: '06:00'
+            },
+            {
+              startDay: 5,
+              startTime: '21:00',
+              endDay: 6,
+              endTime: '06:00'
+            }
+          ],
+        ]
+      },
+      {
+        group: 'Turno',
+        rules: [
+          [{
+            startDay: 6,
+            startTime: '00:00',
+            endDay: 7,
+            endTime: '00:00'
+          }, {
+            startDay: 0,
+            startTime: '00:00',
+            endDay: 1,
+            endTime: '00:00'
+          }]
+        ]
+      },
+      {
+        group: 'Generales',
+        rules: [
+          [{
+            startDay: 6,
+            startTime: '00:00',
+            endDay: 6,
+            endTime: '13:00'
+          }],
+          [{
+            startDay: 6,
+            startTime: '13:00',
+            endDay: 7,
+            endTime: '00:00'
+          }],
+          [{
+            startDay: 0,
+            startTime: '00:00',
+            endDay: 1,
+            endTime: '00:00'
+          }],
+        ]
+      }
+    ]
+
+    var chartDiv = document.getElementById("chart");
+    var mainSvg = d3.select(chartDiv).append("svg")
+
+    // Define the div for the tooltip
+    var tooltip = d3.select('body').append("div")
+      .attr("class", "tooltip")
+      .style("position", "absolute")
+      .style("opacity", 0);
+
+    var margin = {
+      top: 20,
+      right: 30,
+      bottom: 20,
+      left: 20
+    }
+
+
+    function calculateWidthestLabel() {
+
+      const labels = mainSvg
+        .append("g")
+        .selectAll('labels')
+        .data(data.map(m => m.group))
+        .enter()
+        .append("text").text(d => d);
+
+      var maxw = 0
+      mainSvg.selectAll('text').each(function () {
+        if (this.getBBox().width > maxw) maxw = this.getBBox().width;
+      });
+
+      return maxw
+
+    }
+
+
+    function redraw() {
+      const maxw = calculateWidthestLabel()
+
+      margin.left = maxw
+
+      var width = chartDiv.clientWidth - margin.left - margin.right
+      var height = chartDiv.clientHeight - margin.top - margin.bottom
+
+
+
+      var timeScale = d3.scaleTime()
+        .domain([moment("0", "e").toDate(), moment("6", "e").endOf('day').add(1, 'seconds').toDate()])
+        .range([0, width])
+
+
+      var ruleScale = d3.scaleBand()
+        .domain(d3.range(data.map(f => f.rules.length).reduce((accumulator, currentValue) => accumulator + currentValue)))
+        .range([height, 0])
+        .padding(0.06);
+
+      var groupScale = d3.scaleOrdinal()
+        .domain(data.map(m => m.group))
+        .range(data.map((m, i) => m.rules.length - (i === 0 ? 1 : 0)).reduce((acc, cur) => [...acc, ((acc.length ?
+          acc[acc.length - 1] : 0) + cur)], []).map(m => ruleScale(m)))
+
+      var z = d3.scaleOrdinal(d3.schemeCategory10);
+
+      var timeAxis = d3.axisBottom()
+        .scale(timeScale)
+        .ticks(8)
+        .tickFormat(d => d3.timeFormat("%A")(d))
+
+      var group_axis = d3.axisLeft()
+        .scale(groupScale)
+
+      mainSvg.select('g').remove();
+
+      var svg = mainSvg
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + (margin.left) + "," + margin.top + ")");
+
+      svg.append("g")
+        .attr("class", "axis timeAxis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(timeAxis);
+
+      svg.append("g")
+        .attr("class", "axis groupAxis")
+        .call(group_axis);
+
+      var groups_g = svg.selectAll(".group")
+        .data(data)
+        .enter()
+        .append("g")
+        .style("fill", function (d, i) {
+          return z(i);
+        })
+        .attr("transform", function (d, i) {
+          return "translate(0," + groupScale(d.group) + ")";
+        })
+
+      groups_g
+        .append("line")
+        .style("stroke", "black")
+        .style("opacity", "0.3")
+        .attr("x1", 0)
+        .attr("y1", 0)
+        .attr("x2", width)
+        .attr("y2", 0);
+
+      var rules_g = groups_g.selectAll(".rule")
+        .data(function (d) {
+          return d.rules;
+        })
+        .enter()
+        .append("g")
+        .attr("class", function (d, i) {
+          return 'rule rule-' + i;
+        })
+        .attr("transform", function (d, i) {
+          return "translate(0," + ruleScale.bandwidth() * i + ")";
+        });
+
+
+      var values_g = rules_g.selectAll(".value")
+        .data(function (d) {
+          return d;
+        })
+        .enter()
+        .append("g")
+        .attr("class", function (d, i) {
+          return 'value value-' + i;
+        })
+
+      values_g.selectAll('.rect')
+        .data(function (d) {
+          return [d];
+        })
+        .enter()
+        .append("rect")
+        .attr("width", function (d) {
+          return timeScale(moment(`0 ${d.endTime}`, "e HH:mm").add(d.endDay, 'd').toDate()) - timeScale(moment(
+            `${d.startDay} ${d.startTime}`, "e HH:mm").toDate());
+        })
+        .attr("height", ruleScale.bandwidth() * 0.9)
+        .attr("x", function (d, i) {
+          return timeScale(moment(`${d.startDay} ${d.startTime}`, "e HH:mm").toDate());
+        })
+        .attr("y", function (d, i) {
+          return ruleScale.bandwidth() * i + ruleScale(ruleScale.domain().slice(-1)[0])
+        })
+        .on("mouseover", function (d) {
+          tooltip.transition()
+            .duration(200)
+            .style("opacity", .9)
+          tooltip.html(`${d.startTime} - ${d.endTime}`)
+        })
+        .on("mousemove", function (d, _, elems) {
+          var rect = elems[0].getBoundingClientRect()
+
+          tooltip.style("top", (rect.y - 20) + "px").style("left", ((rect.x + (rect.width / 2) - (90 /
+            2)) + "px"));
+        })
+        .on("mouseout", function (d) {
+          tooltip.transition()
+            .duration(500)
+            .style("opacity", 0);
+        });
+    }
+
+    redraw();
+
+    ResizeListener.add(chartDiv, function (data) {
+      // console.log(
+      //   'Width: ' + data.last_width + ' -> ' + data.width,
+      //   'Height: ' + data.last_height + ' -> ' + data.height
+      // );
+
+      redraw()
+    });
+  </script>

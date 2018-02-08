@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  /* .axis--grid .domain {
+    fill: #ddd;
+    stroke: none;
+  }
+
+  .axis--x .domain,
+  .axis--grid .tick line {
+    stroke: #fff;
+  }
+
+  .axis--grid .tick--minor line {
+    stroke-opacity: .5;
+  } */
+</style>
+
+<body>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script>
+    var data = [{
+        group: 'group1',
+        rules: [
+          [
+            [0, 40],
+            [50, 80]
+          ],
+          [
+            [10, 30]
+          ],
+        ]
+      },
+      {
+        group: 'group2',
+        rules: [
+          [
+            [0, 40],
+            [50, 80]
+          ],
+        ]
+      },
+      {
+        group: 'group3',
+        rules: [
+          [
+            [0, 40],
+            [50, 80]
+          ],
+          [
+            [0, 20],
+            [40, 80],
+            [90, 100]
+          ],
+          [
+            [0, 20],
+            [27, 50],
+            [63, 87]
+          ],
+        ]
+      }
+    ]
+
+    var margin = {
+        top: 20,
+        right: 30,
+        bottom: 30,
+        left: 40
+      },
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+    var timeScale = d3.scaleLinear()
+      .domain([0, 100])
+      .range([0, width])
+
+
+    // var testScale = d3.scaleBand()
+    //   // .domain(d3.range(data.map(f => f.rules.length).reduce((accumulator, currentValue) => accumulator + currentValue) +
+    //   //   1))
+    //   .domain(d3.range(5))
+    //   .range([height, 0])
+    //   .padding(0.1);
+
+    var ruleScale = d3.scaleBand()
+      .domain(d3.range(data.map(f => f.rules.length).reduce((accumulator, currentValue) => accumulator + currentValue)))
+      // .domain(d3.range(4))
+      .range([height, 0])
+      .padding(0.06);
+
+    var groupScale = d3.scaleThreshold()
+      .domain(data.map(m => m.group))
+      // .range([...data.map(m => testScale(m.rules.length)), 0])
+      // .range([height, height - 112 * 2, height - 112 * 3, 0])
+      .range([height, ...data.map((m, i) => m.rules.length - (i === 0 ? 1 : 0)).reduce((acc, cur) => [...acc, ((acc.length ?
+        acc[acc.length - 1] : 0) + cur)], []).map(m => ruleScale(m))])
+    // .padding(0.1);
+
+
+
+    // var groupScale = d3.scaleBand()
+    //   .domain(data.map(m => m.group))
+    //   .range([height, 0])
+    //   .padding(0.1);
+
+    // var ruleScale = d3.scaleBand()
+    //   // .domain(d3.range(data.length))
+    //   .domain(d3.range(2))
+    //   .range([0, 112])
+    //   .padding(0.06);
+
+    // var ruleScale = d3.scaleThreshold()
+    //   // .domain(d3.range(data.length))
+    //   .domain([340, 226, 114, 0])
+    //   .range([340, 226, 114, 0])
+    //   .padding(0.06);
+
+    var z = d3.scaleOrdinal(d3.schemeCategory10);
+
+    var timeAxis = d3.axisBottom()
+      .scale(timeScale)
+
+    var group_axis = d3.axisLeft()
+      .scale(groupScale)
+
+    // var rule_axis = d3.axisLeft()
+    //   .scale(ruleScale)
+
+    var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("svg:g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    svg.append("g")
+      .attr("class", "axis timeAxis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(timeAxis);
+
+    svg.append("g")
+      .attr("class", "axis groupAxis")
+      .call(group_axis);
+
+    var groups_g = svg.selectAll(".group")
+      .data(data)
+      .enter()
+      .append("g")
+      .style("fill", function (d, i) {
+        return z(i);
+      })
+      // .attr("transform", function (d, i) {
+      //   return "translate(0," + testScale(data.slice(0, i + 1).map(f => f.rules.length).reduce((accumulator,
+      //     currentValue) => accumulator + currentValue)) + ")";
+      // })
+      .attr("transform", function (d, i) {
+        return "translate(0," + groupScale(d.group) + ")";
+      })
+
+    groups_g
+      .append("line")
+      .style("stroke", "black")
+      .attr("x1", 0)
+      .attr("y1", 0)
+      .attr("x2", width)
+      .attr("y2", 0);
+
+    var rules_g = groups_g.selectAll(".rule")
+      .data(function (d) {
+        return d.rules;
+      })
+      .enter()
+      .append("g")
+      .attr("class", function (d, i) {
+        return 'rule rule-' + i;
+      })
+      .attr("transform", function (d, i) {
+        return "translate(0," + ruleScale.bandwidth() * i + ")";
+      });
+    // .each((d) => {
+
+    // })
+
+    var values_g = rules_g.selectAll(".value")
+      .data(function (d) {
+        return d;
+      })
+      .enter()
+      .append("g")
+      .attr("class", function (d, i) {
+        return 'value value-' + i;
+      })
+    // .attr("transform", function (d, i) {
+    //   return "translate(" + ruleScale(i) + ",0)";
+    // });
+
+    // Define the div for the tooltip
+    var tooltip = d3.select('body').append("div")
+      .attr("class", "tooltip")
+      .style("position", "absolute")
+      .style("opacity", 0);
+
+    values_g.selectAll('.rect')
+      .data(function (d) {
+        return [d];
+      })
+      .enter()
+      .append("rect")
+      .attr("width", function (d) {
+        return timeScale(d[1]) - timeScale(d[0]);
+      })
+      .attr("height", ruleScale.bandwidth() * 0.9)
+      .attr("x", function (d, i) {
+        return timeScale(d[0]);
+      })
+      .attr("y", function (d, i) {
+        // return ruleScale(i);
+        return ruleScale.bandwidth() * i + ruleScale(ruleScale.domain().slice(-1)[0])
+      })
+      .on("mouseover", function (d) {
+        tooltip.transition()
+          .duration(200)
+          .style("opacity", .9)
+        tooltip.html(d)
+      })
+      .on("mousemove", function () {
+        tooltip.style("top", (event.pageY - 10) + "px").style("left", (event.pageX + 10) + "px");
+      })
+      .on("mouseout", function (d) {
+        tooltip.transition()
+          .duration(500)
+          .style("opacity", 0);
+      });
+  </script>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  .axis--grid .domain {
+    fill: #ddd;
+    stroke: none;
+  }
+
+  .axis--x .domain,
+  .axis--grid .tick line {
+    stroke: #fff;
+  }
+
+  .axis--grid .tick--minor line {
+    stroke-opacity: .5;
+  }
+</style>
+
+<body>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script>
+    // var data = {
+    //   labels: [
+    //     'resilience', 'maintainability', 'accessibility',
+    //     'uptime', 'functionality', 'impact'
+    //   ],
+    //   series: [
+    //     {
+    //       label: '2012',
+    //       values: [4, 8, 15, 16, 23, 42]
+    //     },
+    //     {
+    //       label: '2013',
+    //       values: [12, 43, 22, 11, 73, 25]
+    //     },
+    //     {
+    //       label: '2014',
+    //       values: [31, 28, 14, 8, 15, 21]
+    //     },]
+    // };
+
+    //       var chartWidth       = 300,
+    //     barHeight        = 20,
+    //     groupHeight      = barHeight * data.series.length,
+    //     gapBetweenGroups = 10,
+    //     spaceForLabels   = 150,
+    //     spaceForLegend   = 150;
+
+
+    //     var x = d3.scale.linear()
+    //     .domain([0, d3.max(zippedData)])
+    //     .range([0, chartWidth]);
+
+    // var y = d3.scale.linear()
+    //     .range([chartHeight + gapBetweenGroups, 0]);
+
+    // var yAxis = d3.svg.axis()
+    //     .scale(y)
+    //     .tickFormat('')
+    //     .tickSize(0)
+    //     .orient("left");
+
+
+    //
+    //
+    //
+
+    const data = [{
+        group: 'group1',
+        level: 0,
+        times: [0, 40],
+      },
+      {
+        group: 'group1',
+        level: 0,
+        times: [50, 80],
+      },
+      {
+        group: 'group1',
+        level: 1,
+        times: [20, 60],
+      },
+      {
+        group: 'group2',
+        level: 0,
+        times: [10, 20],
+      },
+      {
+        group: 'group3',
+        level: 0,
+        times: [5, 15],
+      },
+      {
+        group: 'group4',
+        level: 0,
+        times: [30, 50],
+      },
+      {
+        group: 'group5',
+        level: 0,
+        times: [0, 50],
+      },
+      {
+        group: 'group6',
+        level: 0,
+        times: [20, 30],
+      }
+    ]
+
+
+    var margin = {
+        top: 200,
+        right: 40,
+        bottom: 200,
+        left: 60
+      },
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+    var timeParse = d3.timeParse("%d");
+    var timeHourParse = d3.timeParse("%H");
+
+    var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var x = d3.scaleTime()
+      .domain([timeHourParse(0), timeHourParse(24 * 7)])
+      .rangeRound([0, width]);
+
+    var y = d3.scaleBand()
+      .domain(data.map(m => m.group + m.level))
+      .range([height, 0])
+      .paddingInner(0.1);
+
+    var xAxis = d3.axisBottom(x)
+      .ticks(8)
+      .tickFormat(d3.timeFormat("%A"))
+
+    var yAxis = d3.axisLeft(y)
+    // .ticks(4)
+    // .tickFormat(d3.timeFormat("%A"))
+    // .scale(x)
+
+    svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+    svg.append("g")
+      .attr("class", "y axis")
+      // .attr("transform", "translate(0," + left + ")")
+      .call(yAxis);
+
+    svg.selectAll('rect')
+      .data(data)
+      .enter()
+      .append('rect')
+      .attr('fill', 'red')
+      .attr('x', (d) => (d.times[0]))
+      .attr('y', (d, i) => y(d.group + d.level))
+      .attr("width", (d) => (d.times[1]))
+      .attr('height', y.bandwidth())
+
+
+    //
+    //
+    //
+
+    // svg.append("g")
+    //   .attr("class", "axis axis--grid")
+    //   .attr("transform", "translate(0," + height + ")")
+    //   .call(d3.axisBottom(x)
+    //     .ticks(d3.timeHour, 12)
+    //     .tickSize(-height)
+    //     .tickFormat(function () {
+    //       return null;
+    //     }))
+    //   .selectAll(".tick")
+    //   .classed("tick--minor", function (d) {
+    //     return d.getHours();
+    //   });
+
+    // svg.append("g")
+    //   .attr("class", "axis axis--x")
+    //   .attr("transform", "translate(0," + height + ")")
+    //   .call(d3.axisBottom(x)
+    //     .ticks(d3.timeDay)
+    //     .tickPadding(0))
+    //   .attr("text-anchor", null)
+    //   .selectAll("text")
+    //   .attr("x", 6);
+
+    // svg.append("g")
+    //   .attr("class", "brush")
+    //   .call(d3.brushX()
+    //     .extent([
+    //       [0, 0],
+    //       [width, height]
+    //     ])
+    //     .on("brush", brushed));
+
+    // function brushed() {
+    //   if (d3.event.sourceEvent.type === "brush") return;
+    //   var d0 = d3.event.selection.map(x.invert),
+    //     d1 = d0.map(d3.timeDay.round);
+
+    //   // If empty when rounded, use floor instead.
+    //   if (d1[0] >= d1[1]) {
+    //     d1[0] = d3.timeDay.floor(d0[0]);
+    //     d1[1] = d3.timeDay.offset(d1[0]);
+    //   }
+
+    //   d3.select(this).call(d3.event.target.move, d1.map(x));
+    // }
+  </script>
