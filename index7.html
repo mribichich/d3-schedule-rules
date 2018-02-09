@@ -259,7 +259,7 @@
       var group_axis = d3.axisLeft()
         .scale(groupScale)
 
-      mainSvg.select('g').remove();
+      mainSvg.selectAll('g').remove();
 
       var svg = mainSvg
         .attr("width", width + margin.left + margin.right)
